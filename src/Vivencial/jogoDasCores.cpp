@@ -5,6 +5,7 @@
 #include <cmath>
 #include <cstdlib>
 #include <ctime>
+#include <algorithm>  // Para std::max
 
 // Estrutura de cor RGB
 struct Color {
@@ -21,6 +22,8 @@ struct Rectangle {
 // Variáveis globais
 const int GRID_ROWS = 5;
 const int GRID_COLS = 5;
+const float COLOR_THRESHOLD = 0.25f;  // Tolerância de similaridade
+
 std::vector<Rectangle> rectangles;
 int score = 0;
 int attempts = 0;
@@ -58,6 +61,10 @@ void resetGame() {
             rectangles.push_back(rect);
         }
     }
+
+    std::cout << "\nBem-vindo ao Jogo das Cores!\n";
+    std::cout << "Clique com o botao esquerdo do mouse para selecionar um retangulo.\n";
+    std::cout << "Pressione 'R' para reiniciar o jogo.\n";
 }
 
 // Renderizar todos os retângulos
@@ -89,25 +96,47 @@ void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
 
         // Identificar o retângulo clicado
         for (auto& rect : rectangles) {
-            if (rect.active &&
-                xNorm >= rect.x && xNorm <= rect.x + rect.width &&
+            if (xNorm >= rect.x && xNorm <= rect.x + rect.width &&
                 yNorm >= rect.y && yNorm <= rect.y + rect.height) {
+
+                if (!rect.active) {
+                    std::cout << "Este retangulo ja foi removido!\n";
+                    return;
+                }
 
                 Color chosenColor = rect.color;
 
                 int removed = 0;
                 // Remover retângulos com cor similar
                 for (auto& r : rectangles) {
-                    if (r.active && colorDistance(chosenColor, r.color) < 0.3f) {
+                    if (r.active && colorDistance(chosenColor, r.color) < COLOR_THRESHOLD) {
                         r.active = false;
                         removed++;
                     }
                 }
+
                 // Atualizar pontuação
-                score += removed * (10 - attempts);
+                int multiplier = std::max(1, 10 - attempts);
+                score += removed * multiplier;
                 attempts++;
-                std::cout << "Tentativa: " << attempts << ", Removidos: " << removed << ", Pontuacao: " << score << "\n";
-                break;
+
+                std::cout << "Tentativa: " << attempts 
+                          << ", Removidos: " << removed 
+                          << ", Pontuacao: " << score << "\n";
+
+                // Verificar se todos foram removidos
+                bool allRemoved = true;
+                for (const auto& r : rectangles) {
+                    if (r.active) {
+                        allRemoved = false;
+                        break;
+                    }
+                }
+                if (allRemoved) {
+                    std::cout << "Fim de jogo! Pontuacao total: " << score << "\n";
+                }
+
+                break;  // Para não processar múltiplos cliques
             }
         }
     }
