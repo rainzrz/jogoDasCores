@@ -5,42 +5,38 @@
 #include <cmath>
 #include <cstdlib>
 #include <ctime>
-#include <algorithm>  // Para std::max
+#include <algorithm>
 
-// Estrutura de cor RGB
 struct Color {
     float r, g, b;
 };
 
-// Estrutura de retângulo
 struct Rectangle {
     float x, y, width, height;
     Color color;
-    bool active;  // Se foi removido ou não
+    bool active;
 };
 
-// Variáveis globais
 const int GRID_ROWS = 5;
 const int GRID_COLS = 5;
-const float COLOR_THRESHOLD = 0.3f;  // Tolerância de similaridade
+const float COLOR_THRESHOLD = 0.3f;
 
 std::vector<Rectangle> rectangles;
 int score = 0;
 int attempts = 0;
 
-// Função para gerar cor aleatória
+unsigned int shaderProgram, VBO, VAO;
+
 Color randomColor() {
     return {static_cast<float>(rand()) / RAND_MAX,
             static_cast<float>(rand()) / RAND_MAX,
             static_cast<float>(rand()) / RAND_MAX};
 }
 
-// Similaridade de cor (distância Euclidiana)
 float colorDistance(Color a, Color b) {
     return sqrt(pow(a.r - b.r, 2) + pow(a.g - b.g, 2) + pow(a.b - b.b, 2));
 }
 
-// Reiniciar o jogo
 void resetGame() {
     rectangles.clear();
     score = 0;
@@ -67,22 +63,26 @@ void resetGame() {
     std::cout << "Pressione 'R' para reiniciar o jogo.\n";
 }
 
-// Renderizar todos os retângulos
 void drawRectangles() {
+    glUseProgram(shaderProgram);
+    glBindVertexArray(VAO);
+
     for (const auto& rect : rectangles) {
         if (!rect.active) continue;
 
-        glColor3f(rect.color.r, rect.color.g, rect.color.b);
-        glBegin(GL_QUADS);
-        glVertex2f(rect.x, rect.y);
-        glVertex2f(rect.x + rect.width, rect.y);
-        glVertex2f(rect.x + rect.width, rect.y + rect.height);
-        glVertex2f(rect.x, rect.y + rect.height);
-        glEnd();
+        int offsetLoc = glGetUniformLocation(shaderProgram, "offset");
+        glUniform2f(offsetLoc, rect.x, rect.y);
+
+        int scaleLoc = glGetUniformLocation(shaderProgram, "scale");
+        glUniform2f(scaleLoc, rect.width, rect.height);
+
+        int colorLoc = glGetUniformLocation(shaderProgram, "ourColor");
+        glUniform3f(colorLoc, rect.color.r, rect.color.g, rect.color.b);
+
+        glDrawArrays(GL_TRIANGLES, 0, 6);
     }
 }
 
-// Callback de clique do mouse
 void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
     if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
         double xpos, ypos;
@@ -90,11 +90,9 @@ void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
         int width, height;
         glfwGetWindowSize(window, &width, &height);
 
-        // Converter posição do clique para coordenadas OpenGL
         float xNorm = (xpos / width) * 2 - 1;
         float yNorm = 1 - (ypos / height) * 2;
 
-        // Identificar o retângulo clicado
         for (auto& rect : rectangles) {
             if (xNorm >= rect.x && xNorm <= rect.x + rect.width &&
                 yNorm >= rect.y && yNorm <= rect.y + rect.height) {
@@ -107,7 +105,6 @@ void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
                 Color chosenColor = rect.color;
 
                 int removed = 0;
-                // Remover retângulos com cor similar
                 for (auto& r : rectangles) {
                     if (r.active && colorDistance(chosenColor, r.color) < COLOR_THRESHOLD) {
                         r.active = false;
@@ -115,16 +112,14 @@ void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
                     }
                 }
 
-                // Atualizar pontuação
                 int multiplier = std::max(1, 10 - attempts);
                 score += removed * multiplier;
                 attempts++;
 
-                std::cout << "Tentativa: " << attempts 
-                          << ", Removidos: " << removed 
+                std::cout << "Tentativa: " << attempts
+                          << ", Removidos: " << removed
                           << ", Pontuacao: " << score << "\n";
 
-                // Verificar se todos foram removidos
                 bool allRemoved = true;
                 for (const auto& r : rectangles) {
                     if (r.active) {
@@ -136,13 +131,12 @@ void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
                     std::cout << "Fim de jogo! Pontuacao total: " << score << "\n";
                 }
 
-                break;  // Para não processar múltiplos cliques
+                break;
             }
         }
     }
 }
 
-// Callback de tecla
 void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
     if (key == GLFW_KEY_R && action == GLFW_PRESS) {
         resetGame();
@@ -150,10 +144,79 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
     }
 }
 
+unsigned int createShaderProgram() {
+    const char* vertexShaderSource = R"glsl(
+        #version 330 core
+        layout (location = 0) in vec2 aPos;
+
+        uniform vec2 offset;
+        uniform vec2 scale;
+
+        void main() {
+            gl_Position = vec4((aPos * scale) + offset, 0.0, 1.0);
+        }
+    )glsl";
+
+    const char* fragmentShaderSource = R"glsl(
+        #version 330 core
+        out vec4 FragColor;
+
+        uniform vec3 ourColor;
+
+        void main() {
+            FragColor = vec4(ourColor, 1.0);
+        }
+    )glsl";
+
+    unsigned int vertexShader = glCreateShader(GL_VERTEX_SHADER);
+    glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
+    glCompileShader(vertexShader);
+
+    unsigned int fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+    glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
+    glCompileShader(fragmentShader);
+
+    unsigned int shaderProg = glCreateProgram();
+    glAttachShader(shaderProg, vertexShader);
+    glAttachShader(shaderProg, fragmentShader);
+    glLinkProgram(shaderProg);
+
+    glDeleteShader(vertexShader);
+    glDeleteShader(fragmentShader);
+
+    return shaderProg;
+}
+
+void setupBuffers() {
+    float vertices[] = {
+        0.0f, 0.0f,
+        1.0f, 0.0f,
+        1.0f, 1.0f,
+        0.0f, 0.0f,
+        1.0f, 1.0f,
+        0.0f, 1.0f
+    };
+
+    glGenVertexArrays(1, &VAO);
+    glGenBuffers(1, &VBO);
+
+    glBindVertexArray(VAO);
+
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+}
+
 int main() {
     srand(static_cast<unsigned>(time(0)));
 
     if (!glfwInit()) return -1;
+
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
     GLFWwindow* window = glfwCreateWindow(600, 600, "Jogo das Cores", NULL, NULL);
     if (!window) {
@@ -166,7 +229,11 @@ int main() {
     glfwSetMouseButtonCallback(window, mouseButtonCallback);
     glfwSetKeyCallback(window, keyCallback);
 
+    shaderProgram = createShaderProgram();
+    setupBuffers();
     resetGame();
+
+    glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 
     while (!glfwWindowShouldClose(window)) {
         glClear(GL_COLOR_BUFFER_BIT);
@@ -176,6 +243,10 @@ int main() {
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
+
+    glDeleteVertexArrays(1, &VAO);
+    glDeleteBuffers(1, &VBO);
+    glDeleteProgram(shaderProgram);
 
     glfwDestroyWindow(window);
     glfwTerminate();
