@@ -106,7 +106,7 @@ void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
                 // Atualizar pontuação
                 score += removed * (10 - attempts);
                 attempts++;
-                std::cout << "Tentativa: " << attempts << ", Removidos: " << removed << ", Pontuação: " << score << "\n";
+                std::cout << "Tentativa: " << attempts << ", Removidos: " << removed << ", Pontuacao: " << score << "\n";
                 break;
             }
         }
