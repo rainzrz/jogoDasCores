@@ -4,11 +4,11 @@ Este repositório é baseado na estrutura do projeto PGCCHIB - Processamento Gr�
 
 A atividade foi implementada no arquivo `jogoDasCores.cpp`, localizado em `src/Vivencial`.
 
-![image](https://github.com/user-attachments/assets/6597e139-5ad1-4b34-b1df-e1b9720fbfd7)
+![image](https://github.com/user-attachments/assets/3a8fbaf0-bbff-403b-b835-792a9bc3c7d9)
 
-![image](https://github.com/user-attachments/assets/2906b119-6783-48d4-9a8e-1bcce90b7093)
+![image](https://github.com/user-attachments/assets/827ef6b5-62ff-4139-b6cf-69ea92d434a5)
 
-![image](https://github.com/user-attachments/assets/32078dd7-c503-4480-b1ce-07b9452ae828)
+![image](https://github.com/user-attachments/assets/6993d4e5-a246-4435-8b9b-b04bca3a35fd)
 
 ## 🛠️ Como compilar e rodar o projeto (PowerShell - Windows)
 Se quiser compilar e rodar o projeto do zero, siga os comandos abaixo:
