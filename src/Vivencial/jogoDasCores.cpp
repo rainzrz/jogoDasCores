@@ -22,7 +22,7 @@ struct Rectangle {
 // Variáveis globais
 const int GRID_ROWS = 5;
 const int GRID_COLS = 5;
-const float COLOR_THRESHOLD = 0.25f;  // Tolerância de similaridade
+const float COLOR_THRESHOLD = 0.3f;  // Tolerância de similaridade
 
 std::vector<Rectangle> rectangles;
 int score = 0;
