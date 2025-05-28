@@ -4,6 +4,7 @@ Este repositório é baseado na estrutura do projeto PGCCHIB - Processamento Gr�
 
 A atividade foi implementada no arquivo `jogoDasCores.cpp`, localizado em `src/Vivencial`.
 
+# Explicação Teórica e Prática
 https://youtu.be/JfuY5sxkjcE
 
 ![image](https://github.com/user-attachments/assets/3a8fbaf0-bbff-403b-b835-792a9bc3c7d9)
